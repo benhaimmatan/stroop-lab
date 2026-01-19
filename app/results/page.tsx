@@ -6,7 +6,8 @@ import { motion } from 'framer-motion';
 import { ResultsChart } from '@/components/results-chart';
 import { TrialResult, ResultsSummary } from '@/types';
 import { calculateAverage } from '@/lib/timing';
-import { RotateCcw, TrendingUp, Target, Clock } from 'lucide-react';
+import { RotateCcw, TrendingUp, Target, Clock, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 function calculateSummary(results: TrialResult[]): ResultsSummary {
   const congruentTimes = results
@@ -34,13 +35,18 @@ function calculateSummary(results: TrialResult[]): ResultsSummary {
 export default function ResultsPage() {
   const router = useRouter();
   const [summary, setSummary] = useState<ResultsSummary | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     const storedResults = sessionStorage.getItem('stroop_results');
+    const storedSessionId = sessionStorage.getItem('stroop_session_id');
     if (!storedResults) {
       router.push('/');
       return;
     }
+
+    setSessionId(storedSessionId);
 
     try {
       const results: TrialResult[] = JSON.parse(storedResults);
@@ -54,6 +60,36 @@ export default function ResultsPage() {
     sessionStorage.removeItem('stroop_session_id');
     sessionStorage.removeItem('stroop_results');
     router.push('/');
+  };
+
+  const handleClearResults = async () => {
+    if (!sessionId) return;
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this session\'s results from the database? This cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    setIsClearing(true);
+    try {
+      const { error } = await supabase
+        .from('stroop_results')
+        .delete()
+        .eq('session_id', sessionId);
+
+      if (error) {
+        console.error('Failed to clear results:', error);
+        alert('Failed to clear results. Please try again.');
+      } else {
+        alert('Results cleared from database successfully.');
+      }
+    } catch (err) {
+      console.error('Error clearing results:', err);
+      alert('Failed to clear results. Please try again.');
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   if (!summary) {
@@ -153,8 +189,8 @@ export default function ResultsPage() {
           </p>
         </div>
 
-        {/* Restart Button */}
-        <div className="flex justify-center">
+        {/* Action Buttons */}
+        <div className="flex justify-center gap-4">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -164,6 +200,19 @@ export default function ResultsPage() {
           >
             <RotateCcw className="w-4 h-4" />
             Try Again
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleClearResults}
+            disabled={isClearing}
+            className="flex items-center gap-2 px-6 py-3 bg-card border border-rose-500/50
+                       rounded-xl font-medium text-rose-500 transition-colors
+                       hover:bg-rose-500/10 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isClearing ? 'Clearing...' : 'Clear Results'}
           </motion.button>
         </div>
       </motion.div>

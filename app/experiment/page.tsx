@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
+import { RotateCcw } from 'lucide-react';
 import { TrialDisplay } from '@/components/trial-display';
 import { ResponseButtons } from '@/components/response-buttons';
 import { ProgressBar } from '@/components/progress-bar';
@@ -38,6 +40,16 @@ export default function ExperimentPage() {
       startTimeRef.current = getTimestamp();
     }
   }, [currentIndex, trials.length, isWaiting]);
+
+  const handleRestart = useCallback(() => {
+    const newSessionId = uuidv4();
+    sessionStorage.setItem('stroop_session_id', newSessionId);
+    setSessionId(newSessionId);
+    setTrials(generateTrials());
+    setCurrentIndex(0);
+    setResults([]);
+    setIsWaiting(false);
+  }, []);
 
   const handleResponse = useCallback(
     async (response: ColorKey) => {
@@ -122,8 +134,20 @@ export default function ExperimentPage() {
         </motion.div>
       </div>
 
-      <div className="fixed bottom-8 text-sm text-muted">
-        Press the button matching the <strong>font color</strong>
+      <div className="fixed bottom-8 flex flex-col items-center gap-4">
+        <span className="text-sm text-muted">
+          Press the button matching the <strong>font color</strong>
+        </span>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleRestart}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-muted
+                     hover:text-foreground transition-colors"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Restart
+        </motion.button>
       </div>
     </main>
   );

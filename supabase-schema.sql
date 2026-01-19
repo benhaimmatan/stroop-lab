@@ -27,3 +27,7 @@ CREATE POLICY "Allow anonymous inserts" ON stroop_results
 -- Allow anonymous selects (for viewing results)
 CREATE POLICY "Allow anonymous selects" ON stroop_results
   FOR SELECT TO anon USING (true);
+
+-- Allow anonymous deletes (for clearing session results)
+CREATE POLICY "Allow anonymous deletes" ON stroop_results
+  FOR DELETE TO anon USING (true);
